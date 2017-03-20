@@ -36,7 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
+#include <iostream>
 #include <vector>
 
 #if defined(__APPLE__)
@@ -181,8 +181,9 @@ const char *fragmentSource = R"(
 
 // row-major matrix 4x4
 struct mat4 {
-	float m[4][4];
+
 public:
+	float m[4][4];
 	mat4() {}
 	mat4(float m00, float m01, float m02, float m03,
 		float m10, float m11, float m12, float m13,
@@ -277,6 +278,48 @@ Camera camera;
 // handle of the shader program
 unsigned int shaderProgram;
 
+class BezierCurve {
+public:
+	float getHeight(float x, float y) { //0 és 1 közt legyen a floatok mérete
+
+		mat4 gbx(
+			0.5, 0.5, 0.5, 0.5,
+			0, 1, 1, 0,
+			0, 1, 1, 0.5,
+			0.5, 0, 0, 0); // GbX matrix
+
+		float ret = 0;
+
+		for (int i = 0; i < 3; i++)
+		{
+			for (int j = 0; j < 3; j++)
+			{
+				ret += gbx.m[i][j] * getB(x, i)*getB(y, j);
+			}
+		}
+		return ret*1.8;
+	}
+	float getB(float u, int no) //u számra a no-adik b-t adja vissza
+	{
+		switch (no)
+		{
+		case 0:
+			return pow((1 - u), 3);
+			break;
+		case 1:
+			return 3 * u*pow((1 - u), 2);
+			break;
+		case 2:
+			return 3 * pow(u, 3)*(1 - u);
+			break;
+		case 3:
+			return pow(u, 3);
+		default:
+			break;
+		}
+	}
+};
+
 class Triangle {
 	unsigned int vao;	// vertex array object id
 	float sx, sy;		// scaling
@@ -350,73 +393,129 @@ class Map {
 	float wTx, wTy;		// translation
 	float fir;
 	int Ag;
+	int mapCoordsLoc;
+	int mapColorsLoc;
 public:
 	Map() {
 		Animate(0);
 	}
 
-	void Create(int ag, float* color) {
-		Ag = ag;
+	void Create() {
+		BezierCurve b;
 		glGenVertexArrays(1, &vao);	// create 1 vertex array object
 		glBindVertexArray(vao);		// make it active
 
 		unsigned int vbo[2];		// vertex buffer objects
 		glGenBuffers(2, &vbo[0]);	// Generate 2 vertex buffer objects
 									//coords
-		float mapCoords[10000];
+		float mapCoords[20000];
 		//color
-		float mapColors[20000];
-		int mapCoordsLoc = 0;
-		int mapColorsLoc = 0;
-		float radius = 0.35;
-		bool big = false;
-		//az elso pont mindig a(0,0)
-		mapCoords[mapCoordsLoc] = 0;
-		mapCoordsLoc++;
-		mapCoords[mapCoordsLoc] = 0;
-		mapCoordsLoc++;
-		mapColors[mapColorsLoc] = color[0];
-		mapColorsLoc++;
-		mapColors[mapColorsLoc] = color[1];
-		mapColorsLoc++;
-		mapColors[mapColorsLoc] = color[2];
-		mapColorsLoc++;
-		for (int i = 0; i < ag; i++)
+		float mapColors[40000];
+		mapCoordsLoc = 0;
+		mapColorsLoc = 0;
+
+		float coordOnMapX = -5;
+		float coordOnMapY = -5;
+		float yellowIntensity = 0.4;
+
+		for (coordOnMapX =-10; coordOnMapX < 10; coordOnMapX += 0.5)
 		{
-			//pont helyének meghatározása
-			float szog = (float)i / ag*2.0f*M_PI;
-			//glVertex2f(current.x + radius*cos(szog), current.y + radius*sin(szog));
-			mapCoords[mapCoordsLoc] = radius*cos(szog);
-			mapCoordsLoc++;
-			mapCoords[mapCoordsLoc] = radius*sin(szog);
-			mapCoordsLoc++;
-			//színezés
-			mapColors[mapColorsLoc] = color[0];
-			mapColorsLoc++;
-			mapColors[mapColorsLoc] = color[1];
-			mapColorsLoc++;
-			mapColors[mapColorsLoc] = color[2];
-			mapColorsLoc++;
-			if (!big) {
-				radius *= 2.3;
-				big = true;
-			}
-			else {
-				radius /= 2.3;
-				big = false;
+
+			for (coordOnMapY = -10; coordOnMapY < 10; coordOnMapY += 0.5)
+			{
+				//elso háromszög
+				mapCoords[mapCoordsLoc] = coordOnMapX;
+				mapCoordsLoc++;
+				mapCoords[mapCoordsLoc] = coordOnMapY;
+				mapCoordsLoc++;
+				//színezés
+				mapColors[mapColorsLoc] = b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20);
+					mapColorsLoc++;
+				mapColors[mapColorsLoc] = 1- (b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20));
+				mapColorsLoc++;
+				mapColors[mapColorsLoc] = yellowIntensity;
+				mapColorsLoc++;
+
+				coordOnMapY += 0.5;
+
+				mapCoords[mapCoordsLoc] = coordOnMapX;
+				mapCoordsLoc++;
+				mapCoords[mapCoordsLoc] = coordOnMapY;
+				mapCoordsLoc++;
+				//színezés
+				mapColors[mapColorsLoc] = b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20);
+				mapColorsLoc++;
+				mapColors[mapColorsLoc] = 1 - (b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20));
+				mapColorsLoc++;
+				mapColors[mapColorsLoc] = yellowIntensity;
+				mapColorsLoc++;
+
+				coordOnMapY -= 0.5;
+				coordOnMapX += 0.5;
+
+				mapCoords[mapCoordsLoc] = coordOnMapX;
+				mapCoordsLoc++;
+				mapCoords[mapCoordsLoc] = coordOnMapY;
+				mapCoordsLoc++;
+				//színezés
+				mapColors[mapColorsLoc] = b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20);
+				mapColorsLoc++;
+				mapColors[mapColorsLoc] = 1 - (b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20));
+				mapColorsLoc++;
+				mapColors[mapColorsLoc] = yellowIntensity;
+				mapColorsLoc++;
+				
+				//coordOnMapX -= 0.5;
+
+				
+				//masodik háromszög
+				mapCoords[mapCoordsLoc] = coordOnMapX;
+				mapCoordsLoc++;
+				mapCoords[mapCoordsLoc] = coordOnMapY;
+				mapCoordsLoc++;
+				//színezés
+				mapColors[mapColorsLoc] = b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20);
+				mapColorsLoc++;
+				mapColors[mapColorsLoc] = 1 - (b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20));
+				mapColorsLoc++;
+				mapColors[mapColorsLoc] = yellowIntensity;
+				mapColorsLoc++;
+
+				coordOnMapY += 0.5;
+
+				mapCoords[mapCoordsLoc] = coordOnMapX;
+				mapCoordsLoc++;
+				mapCoords[mapCoordsLoc] = coordOnMapY;
+				mapCoordsLoc++;
+				//színezés
+				mapColors[mapColorsLoc] = b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20);
+				mapColorsLoc++;
+				mapColors[mapColorsLoc] = 1 - (b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20));
+				mapColorsLoc++;
+				mapColors[mapColorsLoc] = yellowIntensity;
+				mapColorsLoc++;
+
+				coordOnMapX -= 0.5;
+
+				mapCoords[mapCoordsLoc] = coordOnMapX;
+				mapCoordsLoc++;
+				mapCoords[mapCoordsLoc] = coordOnMapY;
+				mapCoordsLoc++;
+				//színezés
+				mapColors[mapColorsLoc] = b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20);
+				mapColorsLoc++;
+				mapColors[mapColorsLoc] = 1 - (b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20));
+				mapColorsLoc++;
+				mapColors[mapColorsLoc] = yellowIntensity;
+				mapColorsLoc++;
+
+
+
+				coordOnMapY -= 0.5;
+				//std::cout << (b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20))<<"\n";
+
 			}
 		}
-		//az utolso pont pedig ahonnan indult a rajz
-		mapCoords[mapCoordsLoc] = radius*cos(0);
-		mapCoordsLoc++;
-		mapCoords[mapCoordsLoc] = radius*sin(0);
-		mapCoordsLoc++;
-		mapColors[mapColorsLoc] = color[0];
-		mapColorsLoc++;
-		mapColors[mapColorsLoc] = color[1];
-		mapColorsLoc++;
-		mapColors[mapColorsLoc] = color[2];
-		mapColorsLoc++;
 
 		// vertex coordinates: vbo[0] -> Attrib Array 0 -> vertexPosition of the vertex shader
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]); // make it active, it is an array
@@ -467,7 +566,7 @@ public:
 		else printf("uniform MVP cannot be set\n");
 
 		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
-		glDrawArrays(GL_TRIANGLE_FAN, 0, Ag + 2);	// draw a single triangle with vertices defined in vao
+		glDrawArrays(GL_TRIANGLES, 0, mapColorsLoc/3);	// draw a single triangle with vertices defined in vao
 	}
 };
 
@@ -524,25 +623,6 @@ public:
 	}
 };
 
-class BezierCurve {
-	vector<vec3> cps;	// control points 
-
-	float B(int i, float t) { //bezier
-		int n = cps.size() - 1; // n deg polynomial = n+1 pts!
-		float choose = 1;
-		for (int j = 1; j <= i; j++) choose *= (float)(n - j + 1) / j;
-		return choose * pow(t, i) * pow(1 - t, n - i);
-	}
-public:
-	void AddControlPoint(vec3 cp) { cps.push_back(cp); }
-
-	vec3 r(float t) {
-		vec3 rr(0, 0);
-		for (int i = 0; i < cps.size(); i++) rr += cps[i] * B(i, t);
-		return rr;
-	}
-};
-
 
 // The virtual world: collection of two objects
 //Triangle triangle;
@@ -558,7 +638,7 @@ void onInitialization() {
 	lineStrip.Create();
 
 	static float color[3] = { 0.95, 1.0, 1.0 };
-	mapTriangles.Create(22, color);
+	mapTriangles.Create();
 
 	// Create vertex shader from string
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -614,8 +694,9 @@ void onDisplay() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
 
 //	triangle.Draw();
-	lineStrip.Draw();
 	mapTriangles.Draw();
+	lineStrip.Draw();
+	
 	glutSwapBuffers();									// exchange the two buffers
 }
 
