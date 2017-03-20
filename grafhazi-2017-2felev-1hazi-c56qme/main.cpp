@@ -262,10 +262,107 @@ public:
 	}
 
 	void Animate(float t) {
-		sx = 1; // *sinf(t);
-		sy = 1; // *cosf(t);
-		wTx = 0; // 4 * cosf(t / 2);
-		wTy = 0; // 4 * sinf(t / 2);
+		sx = 1 * sinf(t);
+		sy = 1 * cosf(t);
+		wTx = 4 * cosf(t / 2);
+		wTy = 4 * sinf(t / 2);
+	}
+
+	void Draw() {
+		mat4 M(sx, 0, 0, 0,
+			0, sy, 0, 0,
+			0, 0, 0, 0,
+			wTx, wTy, 0, 1); // model matrix
+
+		mat4 MVPTransform = M * camera.V() * camera.P();
+
+		// set GPU uniform matrix variable MVP with the content of CPU variable MVPTransform
+		int location = glGetUniformLocation(shaderProgram, "MVP");
+		if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, MVPTransform); // set uniform variable MVP to the MVPTransform
+		else printf("uniform MVP cannot be set\n");
+
+		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
+		glDrawArrays(GL_TRIANGLES, 0, 3);	// draw a single triangle with vertices defined in vao
+	}
+};
+
+class MainMap {
+	unsigned int vao;	// vertex array object id
+	unsigned int vbo[2];		// vertex buffer objects
+	float sx, sy;		// scaling
+	float wTx, wTy;		// translation
+public:
+	MainMap() {
+		Animate(0);
+	}
+
+	void Create() {
+		glGenVertexArrays(1, &vao);	// create 1 vertex array object
+		glBindVertexArray(vao);		// make it active
+		glGenBuffers(2, &vbo[0]);	// Generate 2 vertex buffer objects
+
+									// vertex coordinates: vbo[0] -> Attrib Array 0 -> vertexPosition of the vertex shader
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]); // make it active, it is an array
+
+		static float vertexCoords[] = { -8, -8, -6, 10, 8, -2 };	// vertex data on the CPU
+		glBufferData(GL_ARRAY_BUFFER,      // copy to the GPU
+			sizeof(vertexCoords),  // number of the vbo in bytes
+			vertexCoords,		   // address of the data array on the CPU
+			GL_STATIC_DRAW);	   // copy to that part of the memory which is not modified 
+								   // Map Attribute Array 0 to the current bound vertex buffer (vbo[0])
+		glEnableVertexAttribArray(0);
+		// Data organization of Attribute Array 0 
+		glVertexAttribPointer(0,			// Attribute Array 0
+			2, GL_FLOAT,  // components/attribute, component type
+			GL_FALSE,		// not in fixed point format, do not normalized
+			0, NULL);     // stride and offset: it is tightly packed
+
+						  // vertex colors: vbo[1] -> Attrib Array 1 -> vertexColor of the vertex shader
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]); // make it active, it is an array
+		static float vertexColors[] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };	// vertex data on the CPU
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertexColors), vertexColors, GL_STATIC_DRAW);	// copy to the GPU
+
+																							// Map Attribute Array 1 to the current bound vertex buffer (vbo[1])
+		glEnableVertexAttribArray(1);  // Vertex position
+									   // Data organization of Attribute Array 1
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL); // Attribute Array 1, components/attribute, component type, normalize?, tightly packed
+	}
+
+	void AddTriangle(float points[], float colors[]) //3 points 
+	{
+		//koordináták hozzáaadása
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]); // make it active, it is an array
+		static float vertexCoords[] = { -8, -8, -6, 10, 8, -2 };	// vertex data on the CPU
+
+		glBufferData(GL_ARRAY_BUFFER,      // copy to the GPU
+			sizeof(vertexCoords),  // number of the vbo in bytes
+			vertexCoords,		   // address of the data array on the CPU
+			GL_STATIC_DRAW);	   // copy to that part of the memory which is not modified 
+
+
+		glEnableVertexAttribArray(0);
+		// Data organization of Attribute Array 0 
+		glVertexAttribPointer(0,			// Attribute Array 0
+			2, GL_FLOAT,  // components/attribute, component type
+			GL_FALSE,		// not in fixed point format, do not normalize
+			0, NULL);     // stride and offset: it is tightly packed
+
+						  // vertex colors: vbo[1] -> Attrib Array 1 -> vertexColor of the vertex shader
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]); // make it active, it is an array
+		static float vertexColors[] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };	// vertex data on the CPU
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertexColors), vertexColors, GL_STATIC_DRAW);	// copy to the GPU
+
+																							// Map Attribute Array 1 to the current bound vertex buffer (vbo[1])
+		glEnableVertexAttribArray(1);  // Vertex position
+									   // Data organization of Attribute Array 1
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL); // Attribute Array 1, components/attribute, component type, normalize?, tightly packed
+	}
+
+	void Animate(float t) {
+		sx = 1;// *sinf(t);
+		sy = 1;// *cosf(t);
+		wTx = 0;// 4 * cosf(t / 2);
+		wTy = 0;// 4 * sinf(t / 2);
 	}
 
 	void Draw() {
@@ -340,7 +437,7 @@ public:
 };
 
 // The virtual world: collection of two objects
-Triangle triangle;
+//Triangle triangle;
 LineStrip lineStrip;
 
 // Initialization, create an OpenGL context
@@ -348,7 +445,7 @@ void onInitialization() {
 	glViewport(0, 0, windowWidth, windowHeight);
 
 	// Create objects by setting up their vertex data on the GPU
-	triangle.Create();
+//	triangle.Create();
 	lineStrip.Create();
 
 	// Create vertex shader from string
@@ -404,7 +501,7 @@ void onDisplay() {
 	glClearColor(0, 0, 0, 0);							// background color 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
 
-	triangle.Draw();
+//	triangle.Draw();
 	lineStrip.Draw();
 	glutSwapBuffers();									// exchange the two buffers
 }
@@ -438,7 +535,7 @@ void onIdle() {
 	long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program
 	float sec = time / 1000.0f;				// convert msec to sec
 	camera.Animate(sec);					// animate the camera
-	triangle.Animate(sec);					// animate the triangle object
+//	triangle.Animate(sec);					// animate the triangle object
 	glutPostRedisplay();					// redraw the scene
 }
 
