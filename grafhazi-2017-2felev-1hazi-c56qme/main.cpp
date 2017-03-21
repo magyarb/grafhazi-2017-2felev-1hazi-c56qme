@@ -609,7 +609,6 @@ public:
 
 		float coordOnMapX = 0;
 		float coordOnMapY = 0;
-		float yellowIntensity = 0.4;
 
 				//elso háromszög
 				mapCoords[mapCoordsLoc] = coordOnMapX;
@@ -684,7 +683,7 @@ public:
 				mapColors[mapColorsLoc] = 1;
 				mapColorsLoc++;
 
-				coordOnMapX -= 0.5;
+				coordOnMapY -= 0.5;
 
 				mapCoords[mapCoordsLoc] = coordOnMapX;
 				mapCoordsLoc++;
@@ -698,9 +697,6 @@ public:
 				mapColors[mapColorsLoc] = 1;
 				mapColorsLoc++;
 
-
-
-				coordOnMapY -= 0.5;
 				//std::cout << (b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20))<<"\n";
 
 		// vertex coordinates: vbo[0] -> Attrib Array 0 -> vertexPosition of the vertex shader
@@ -752,7 +748,7 @@ public:
 		else printf("uniform MVP cannot be set\n");
 
 		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
-		glDrawArrays(GL_TRIANGLES, 0, mapColorsLoc / 3);	// draw a single triangle with vertices defined in vao
+		glDrawArrays(GL_TRIANGLES, 0, (mapCoordsLoc / 2)-0);	// draw a single triangle with vertices defined in vao
 	}
 };
 
@@ -933,6 +929,7 @@ public:
 //LineStrip lineStrip;
 Map mapTriangles;
 LagrangeCurve lagrange;
+Biker PepsiBela;
 
 // Initialization, create an OpenGL context
 void onInitialization() {
@@ -941,7 +938,7 @@ void onInitialization() {
 	// Create objects by setting up their vertex data on the GPU
 //	triangle.Create();
 	lagrange.Create();
-
+	PepsiBela.Create();
 	static float color[3] = { 0.95, 1.0, 1.0 };
 	mapTriangles.Create();
 
@@ -1002,6 +999,7 @@ void onDisplay() {
 	mapTriangles.Draw();
 	//lineStrip.Draw();
 	lagrange.Draw();
+	PepsiBela.Draw();
 	glutSwapBuffers();									// exchange the two buffers
 }
 
