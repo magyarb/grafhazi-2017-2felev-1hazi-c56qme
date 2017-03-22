@@ -89,8 +89,8 @@ struct Vector {
 	float Length() { return sqrt(x * x + y * y + z * z); }
 };
 
-Vector map1loc;
 
+float spacepressedtime = 0;
 //--------------------------------------------------------
 // Spektrum illetve szin -szinten a tavalyi sablonbol
 //--------------------------------------------------------
@@ -327,8 +327,6 @@ public:
 	}
 };
 
-std::vector<Vector> curvePoints;
-std::vector<float> curveTimes;
 
 class Triangle {
 	unsigned int vao;	// vertex array object id
@@ -580,239 +578,15 @@ public:
 	}
 };
 
-class Biker {
-	unsigned int vao;	// vertex array object id
-	float sx, sy;		// scaling
-	float wTx, wTy;		// translation
-	float fir;
-	int Ag;
-	int mapCoordsLoc;
-	int mapColorsLoc;
-public:
-	Biker() {
-		Animate(0);
-	}
-
-	void Create() {
-		BezierCurve b;
-		glGenVertexArrays(1, &vao);	// create 1 vertex array object
-		glBindVertexArray(vao);		// make it active
-
-		unsigned int vbo[2];		// vertex buffer objects
-		glGenBuffers(2, &vbo[0]);	// Generate 2 vertex buffer objects
-									//coords
-		float mapCoords[20000];
-		//color
-		float mapColors[40000];
-		mapCoordsLoc = 0;
-		mapColorsLoc = 0;
-
-		float coordOnMapX = 0;
-		float coordOnMapY = 0;
-
-				//elso háromszög
-				mapCoords[mapCoordsLoc] = coordOnMapX;
-				mapCoordsLoc++;
-				mapCoords[mapCoordsLoc] = coordOnMapY;
-				mapCoordsLoc++;
-				//színezés
-				mapColors[mapColorsLoc] = 0;
-				mapColorsLoc++;
-				mapColors[mapColorsLoc] = 0;
-				mapColorsLoc++;
-				mapColors[mapColorsLoc] = 1;
-				mapColorsLoc++;
-
-				coordOnMapY += 0.5;
-
-				mapCoords[mapCoordsLoc] = coordOnMapX;
-				mapCoordsLoc++;
-				mapCoords[mapCoordsLoc] = coordOnMapY;
-				mapCoordsLoc++;
-				//színezés
-				mapColors[mapColorsLoc] = 0;
-				mapColorsLoc++;
-				mapColors[mapColorsLoc] = 0;
-				mapColorsLoc++;
-				mapColors[mapColorsLoc] = 1;
-				mapColorsLoc++;
-
-				coordOnMapY -= 0.7;
-				coordOnMapX -= 0.2;
-
-				mapCoords[mapCoordsLoc] = coordOnMapX;
-				mapCoordsLoc++;
-				mapCoords[mapCoordsLoc] = coordOnMapY;
-				mapCoordsLoc++;
-				//színezés
-				mapColors[mapColorsLoc] = 0;
-				mapColorsLoc++;
-				mapColors[mapColorsLoc] = 0;
-				mapColorsLoc++;
-				mapColors[mapColorsLoc] = 1;
-				mapColorsLoc++;
-
-				coordOnMapX += 0.4;
-
-
-				//masodik háromszög
-				mapCoords[mapCoordsLoc] = coordOnMapX;
-				mapCoordsLoc++;
-				mapCoords[mapCoordsLoc] = coordOnMapY;
-				mapCoordsLoc++;
-				//színezés
-				mapColors[mapColorsLoc] = 0;
-				mapColorsLoc++;
-				mapColors[mapColorsLoc] = 0;
-				mapColorsLoc++;
-				mapColors[mapColorsLoc] = 1;
-				mapColorsLoc++;
-
-				coordOnMapY += 0.7;
-				coordOnMapX -= 0.2;
-
-				mapCoords[mapCoordsLoc] = coordOnMapX;
-				mapCoordsLoc++;
-				mapCoords[mapCoordsLoc] = coordOnMapY;
-				mapCoordsLoc++;
-				//színezés
-				mapColors[mapColorsLoc] = 0;
-				mapColorsLoc++;
-				mapColors[mapColorsLoc] = 0;
-				mapColorsLoc++;
-				mapColors[mapColorsLoc] = 1;
-				mapColorsLoc++;
-
-				coordOnMapY -= 0.5;
-
-				mapCoords[mapCoordsLoc] = coordOnMapX;
-				mapCoordsLoc++;
-				mapCoords[mapCoordsLoc] = coordOnMapY;
-				mapCoordsLoc++;
-				//színezés
-				mapColors[mapColorsLoc] = 0;
-				mapColorsLoc++;
-				mapColors[mapColorsLoc] = 0;
-				mapColorsLoc++;
-				mapColors[mapColorsLoc] = 1;
-				mapColorsLoc++;
-
-				//std::cout << (b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20))<<"\n";
-
-		// vertex coordinates: vbo[0] -> Attrib Array 0 -> vertexPosition of the vertex shader
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]); // make it active, it is an array
-		glBufferData(GL_ARRAY_BUFFER,      // copy to the GPU
-			sizeof(float)*(mapCoordsLoc),  // number of the vbo in bytes
-			mapCoords,		   // address of the data array on the CPU
-			GL_STATIC_DRAW);	   // copy to that part of the memory which is not modified 
-								   // Map Attribute Array 0 to the current bound vertex buffer (vbo[0])
-		glEnableVertexAttribArray(0);
-		// Data organization of Attribute Array 0 
-		glVertexAttribPointer(0,			// Attribute Array 0
-			2, GL_FLOAT,  // components/attribute, component type
-			GL_FALSE,		// not in fixed point format, do not normalized
-			0, NULL);     // stride and offset: it is tightly packed
-
-						  // vertex colors: vbo[1] -> Attrib Array 1 -> vertexColor of the vertex shader
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]); // make it active, it is an array
-		glBufferData(GL_ARRAY_BUFFER, sizeof(float)*(mapColorsLoc), mapColors, GL_STATIC_DRAW);	// copy to the GPU
-
-																								// Map Attribute Array 1 to the current bound vertex buffer (vbo[1])
-		glEnableVertexAttribArray(1);  // Vertex position
-									   // Data organization of Attribute Array 1
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL); // Attribute Array 1, components/attribute, component type, normalize?, tightly packed
-	}
-
-	void Animate(float t) {
-		sx = 1;// *sinf(t);
-		sy = 1;// *cosf(t);
-		wTx = 0;// 4 * cosf(t / 2);
-		wTy = 0;// 4 * sinf(t / 2);
-	}
-
-	void Draw() {
-		mat4 scale(sx, 0, 0, 0,
-			0, sy, 0, 0,
-			0, 0, 0, 0,
-			wTx, wTy, 0, 1); // scale and position matrix
-		mat4 rot(cos(fir), -sin(fir), 0, 0,
-			sin(fir), cos(fir), 0, 0,
-			0, 0, 0, 0,
-			0, 0, 0, 1); // rotate matrix
-		mat4 M = rot * scale;
-		mat4 MVPTransform = M * camera.V() * camera.P();
-
-		// set GPU uniform matrix variable MVP with the content of CPU variable MVPTransform
-		int location = glGetUniformLocation(shaderProgram, "MVP");
-		if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, MVPTransform); // set uniform variable MVP to the MVPTransform
-		else printf("uniform MVP cannot be set\n");
-
-		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
-		glDrawArrays(GL_TRIANGLES, 0, (mapCoordsLoc / 2)-0);	// draw a single triangle with vertices defined in vao
-	}
-};
-
-class LineStrip {
-	GLuint vao, vbo;        // vertex array object, vertex buffer object
-	float  vertexData[100]; // interleaved data of coordinates and colors
-	int    nVertices;       // number of vertices
-public:
-	LineStrip() {
-		nVertices = 0;
-	}
-	void Create() {
-		glGenVertexArrays(1, &vao);
-		glBindVertexArray(vao);
-
-		glGenBuffers(1, &vbo); // Generate 1 vertex buffer object
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		// Enable the vertex attribute arrays
-		glEnableVertexAttribArray(0);  // attribute array 0
-		glEnableVertexAttribArray(1);  // attribute array 1
-									   // Map attribute array 0 to the vertex data of the interleaved vbo
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(0)); // attribute array, components/attribute, component type, normalize?, stride, offset
-																										// Map attribute array 1 to the color data of the interleaved vbo
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(2 * sizeof(float)));
-	}
-
-	void AddPoint(float cX, float cY) {
-		if (nVertices >= 20) return;
-
-		vec4 wVertex = vec4(cX, cY, 0, 1) * camera.Pinv() * camera.Vinv();
-		// fill interleaved data
-		vertexData[5 * nVertices] = wVertex.v[0];
-		vertexData[5 * nVertices + 1] = wVertex.v[1];
-		vertexData[5 * nVertices + 2] = 1; // red
-		vertexData[5 * nVertices + 3] = 1; // green
-		vertexData[5 * nVertices + 4] = 0; // blue
-		nVertices++;
-		// copy data to the GPU
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, nVertices * 5 * sizeof(float), vertexData, GL_DYNAMIC_DRAW);
-	}
-
-	void Draw() {
-		if (nVertices > 0) {
-			mat4 VPTransform = camera.V() * camera.P();
-
-			int location = glGetUniformLocation(shaderProgram, "MVP");
-			if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, VPTransform);
-			else printf("uniform MVP cannot be set\n");
-
-			glBindVertexArray(vao);
-			glDrawArrays(GL_LINE_STRIP, 0, nVertices);
-		}
-	}
-};
-
 class LagrangeCurve {
 	GLuint vao, vbo;        // vertex array object, vertex buffer object
 	float  vertexData[10000]; // interleaved data of coordinates and colors
 	int    nVertices;       // number of vertices
 	std::vector<Vector> cps; //control points
 	std::vector<float> ts; //knot values
-	std::vector<float> times;
+
 public:
+	std::vector<float> times;
 	LagrangeCurve() {
 		nVertices = 0;
 	}
@@ -870,6 +644,9 @@ public:
 		vertexData[5 * nVertices + 3] = 1; // green
 		vertexData[5 * nVertices + 4] = 0; // blue
 		nVertices++;
+
+
+
 		// copy data to the GPU
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, nVertices * 5 * sizeof(float), vertexData, GL_DYNAMIC_DRAW);
@@ -877,17 +654,18 @@ public:
 
 	void Recalculate()
 	{
+
 		BezierCurve b;
 		float res = 0.01; //resolution
 		nVertices = 0;
 		float distance = 0;
 		Vector elozo;
-		for (float f = 0; f < cps.size()-1; f += res)
+		for (float f = 0; f < cps.size() - 1; f += res)
 		{
 			Vector jelenlegi;
 			jelenlegi.x = r(f).x;
 			jelenlegi.y = r(f).y;
-			jelenlegi.z = b.getHeight((jelenlegi.x + 10) / 20, (jelenlegi.y + 10) / 20)*20;
+			jelenlegi.z = b.getHeight((jelenlegi.x + 10) / 20, (jelenlegi.y + 10) / 20) * 20;
 			//std::cout << jelenlegi.z << "\n";
 			if (f != 0)
 			{
@@ -901,9 +679,257 @@ public:
 			vertexData[5 * nVertices + 3] = 1; // green
 			vertexData[5 * nVertices + 4] = 1; // blue
 			nVertices++;
-			
+
+
 		}
-		std::cout << distance*50 << "\n";
+		std::cout << distance * 50 << "\n";
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, nVertices * 5 * sizeof(float), vertexData, GL_DYNAMIC_DRAW);
+	}
+
+	void Draw() {
+		if (nVertices > 0) {
+			mat4 VPTransform = camera.V() * camera.P();
+
+			int location = glGetUniformLocation(shaderProgram, "MVP");
+			if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, VPTransform);
+			else printf("uniform MVP cannot be set\n");
+
+			glBindVertexArray(vao);
+			glDrawArrays(GL_LINE_STRIP, 0, nVertices);
+		}
+	}
+};
+LagrangeCurve lagrange;
+
+class Biker {
+	unsigned int vao;	// vertex array object id
+	float sx, sy;		// scaling
+	float wTx, wTy;		// translation
+	float fir;
+	int Ag;
+	int mapCoordsLoc;
+	int mapColorsLoc;
+public:
+	Biker() {
+		Animate(0);
+	}
+
+	void Create() {
+		BezierCurve b;
+		glGenVertexArrays(1, &vao);	// create 1 vertex array object
+		glBindVertexArray(vao);		// make it active
+
+		unsigned int vbo[2];		// vertex buffer objects
+		glGenBuffers(2, &vbo[0]);	// Generate 2 vertex buffer objects
+									//coords
+		float mapCoords[20000];
+		//color
+		float mapColors[40000];
+		mapCoordsLoc = 0;
+		mapColorsLoc = 0;
+
+		float coordOnMapX = 0;
+		float coordOnMapY = 0;
+
+		//elso háromszög
+		mapCoords[mapCoordsLoc] = coordOnMapX;
+		mapCoordsLoc++;
+		mapCoords[mapCoordsLoc] = coordOnMapY;
+		mapCoordsLoc++;
+		//színezés
+		mapColors[mapColorsLoc] = 0;
+		mapColorsLoc++;
+		mapColors[mapColorsLoc] = 0;
+		mapColorsLoc++;
+		mapColors[mapColorsLoc] = 1;
+		mapColorsLoc++;
+
+		coordOnMapY += 0.5;
+
+		mapCoords[mapCoordsLoc] = coordOnMapX;
+		mapCoordsLoc++;
+		mapCoords[mapCoordsLoc] = coordOnMapY;
+		mapCoordsLoc++;
+		//színezés
+		mapColors[mapColorsLoc] = 0;
+		mapColorsLoc++;
+		mapColors[mapColorsLoc] = 0;
+		mapColorsLoc++;
+		mapColors[mapColorsLoc] = 1;
+		mapColorsLoc++;
+
+		coordOnMapY -= 0.7;
+		coordOnMapX -= 0.2;
+
+		mapCoords[mapCoordsLoc] = coordOnMapX;
+		mapCoordsLoc++;
+		mapCoords[mapCoordsLoc] = coordOnMapY;
+		mapCoordsLoc++;
+		//színezés
+		mapColors[mapColorsLoc] = 0;
+		mapColorsLoc++;
+		mapColors[mapColorsLoc] = 0;
+		mapColorsLoc++;
+		mapColors[mapColorsLoc] = 1;
+		mapColorsLoc++;
+
+		coordOnMapX += 0.4;
+
+
+		//masodik háromszög
+		mapCoords[mapCoordsLoc] = coordOnMapX;
+		mapCoordsLoc++;
+		mapCoords[mapCoordsLoc] = coordOnMapY;
+		mapCoordsLoc++;
+		//színezés
+		mapColors[mapColorsLoc] = 0;
+		mapColorsLoc++;
+		mapColors[mapColorsLoc] = 0;
+		mapColorsLoc++;
+		mapColors[mapColorsLoc] = 1;
+		mapColorsLoc++;
+
+		coordOnMapY += 0.7;
+		coordOnMapX -= 0.2;
+
+		mapCoords[mapCoordsLoc] = coordOnMapX;
+		mapCoordsLoc++;
+		mapCoords[mapCoordsLoc] = coordOnMapY;
+		mapCoordsLoc++;
+		//színezés
+		mapColors[mapColorsLoc] = 0;
+		mapColorsLoc++;
+		mapColors[mapColorsLoc] = 0;
+		mapColorsLoc++;
+		mapColors[mapColorsLoc] = 1;
+		mapColorsLoc++;
+
+		coordOnMapY -= 0.5;
+
+		mapCoords[mapCoordsLoc] = coordOnMapX;
+		mapCoordsLoc++;
+		mapCoords[mapCoordsLoc] = coordOnMapY;
+		mapCoordsLoc++;
+		//színezés
+		mapColors[mapColorsLoc] = 0;
+		mapColorsLoc++;
+		mapColors[mapColorsLoc] = 0;
+		mapColorsLoc++;
+		mapColors[mapColorsLoc] = 1;
+		mapColorsLoc++;
+
+		//std::cout << (b.getHeight((coordOnMapX + 10) / 20, (coordOnMapY + 10) / 20))<<"\n";
+
+// vertex coordinates: vbo[0] -> Attrib Array 0 -> vertexPosition of the vertex shader
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]); // make it active, it is an array
+		glBufferData(GL_ARRAY_BUFFER,      // copy to the GPU
+			sizeof(float)*(mapCoordsLoc),  // number of the vbo in bytes
+			mapCoords,		   // address of the data array on the CPU
+			GL_STATIC_DRAW);	   // copy to that part of the memory which is not modified 
+								   // Map Attribute Array 0 to the current bound vertex buffer (vbo[0])
+		glEnableVertexAttribArray(0);
+		// Data organization of Attribute Array 0 
+		glVertexAttribPointer(0,			// Attribute Array 0
+			2, GL_FLOAT,  // components/attribute, component type
+			GL_FALSE,		// not in fixed point format, do not normalized
+			0, NULL);     // stride and offset: it is tightly packed
+
+						  // vertex colors: vbo[1] -> Attrib Array 1 -> vertexColor of the vertex shader
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]); // make it active, it is an array
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float)*(mapColorsLoc), mapColors, GL_STATIC_DRAW);	// copy to the GPU
+
+																								// Map Attribute Array 1 to the current bound vertex buffer (vbo[1])
+		glEnableVertexAttribArray(1);  // Vertex position
+									   // Data organization of Attribute Array 1
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL); // Attribute Array 1, components/attribute, component type, normalize?, tightly packed
+	}
+
+	void Animate(float t) { //az eltelt ido a space lenyomasa ota
+		sx = 1; // *sinf(t);
+		sy = 1; // *cosf(t);
+		Vector loc;
+		if (spacepressedtime != 0) {
+			//ha vége a pályának, marad ott
+			loc = lagrange.r(lagrange.times.size() - 1);
+			for (int i = 0; i < lagrange.times.size() - 1; i++)
+			{
+				if ((lagrange.times[i] - lagrange.times[0]) < t && t < (lagrange.times[i + 1] - lagrange.times[0])) // ha a megfelelo szakaszban van
+				{
+					float elsokatt = lagrange.times[i] - lagrange.times[0];
+					float masodikkatt = lagrange.times[i + 1] - lagrange.times[0];
+					float elteltido = masodikkatt - elsokatt;
+					float state = i + (t-elsokatt) / elteltido;
+					loc = lagrange.r(state);
+				}
+			}
+			wTx = loc.x;// 4 * cosf(t / 2);
+			wTy = loc.y;// 4 * sinf(t / 2);
+		}
+		else
+		{
+			wTx = 0;// 4 * cosf(t / 2);
+			wTy = 0;// 4 * sinf(t / 2);
+		}
+	}
+
+	void Draw() {
+		mat4 scale(sx, 0, 0, 0,
+			0, sy, 0, 0,
+			0, 0, 0, 0,
+			wTx, wTy, 0, 1); // scale and position matrix
+		mat4 rot(cos(fir), -sin(fir), 0, 0,
+			sin(fir), cos(fir), 0, 0,
+			0, 0, 0, 0,
+			0, 0, 0, 1); // rotate matrix
+		mat4 M = rot * scale;
+		mat4 MVPTransform = M * camera.V() * camera.P();
+
+		// set GPU uniform matrix variable MVP with the content of CPU variable MVPTransform
+		int location = glGetUniformLocation(shaderProgram, "MVP");
+		if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, MVPTransform); // set uniform variable MVP to the MVPTransform
+		else printf("uniform MVP cannot be set\n");
+
+		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
+		glDrawArrays(GL_TRIANGLES, 0, (mapCoordsLoc / 2) - 0);	// draw a single triangle with vertices defined in vao
+	}
+};
+
+class LineStrip {
+	GLuint vao, vbo;        // vertex array object, vertex buffer object
+	float  vertexData[100]; // interleaved data of coordinates and colors
+	int    nVertices;       // number of vertices
+public:
+	LineStrip() {
+		nVertices = 0;
+	}
+	void Create() {
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+
+		glGenBuffers(1, &vbo); // Generate 1 vertex buffer object
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		// Enable the vertex attribute arrays
+		glEnableVertexAttribArray(0);  // attribute array 0
+		glEnableVertexAttribArray(1);  // attribute array 1
+									   // Map attribute array 0 to the vertex data of the interleaved vbo
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(0)); // attribute array, components/attribute, component type, normalize?, stride, offset
+																										// Map attribute array 1 to the color data of the interleaved vbo
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(2 * sizeof(float)));
+	}
+
+	void AddPoint(float cX, float cY) {
+		if (nVertices >= 20) return;
+
+		vec4 wVertex = vec4(cX, cY, 0, 1) * camera.Pinv() * camera.Vinv();
+		// fill interleaved data
+		vertexData[5 * nVertices] = wVertex.v[0];
+		vertexData[5 * nVertices + 1] = wVertex.v[1];
+		vertexData[5 * nVertices + 2] = 1; // red
+		vertexData[5 * nVertices + 3] = 1; // green
+		vertexData[5 * nVertices + 4] = 0; // blue
+		nVertices++;
+		// copy data to the GPU
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, nVertices * 5 * sizeof(float), vertexData, GL_DYNAMIC_DRAW);
 	}
@@ -924,11 +950,12 @@ public:
 
 
 
+
 // The virtual world: collection of two objects
 //Triangle triangle;
 //LineStrip lineStrip;
 Map mapTriangles;
-LagrangeCurve lagrange;
+
 Biker PepsiBela;
 
 // Initialization, create an OpenGL context
@@ -1006,6 +1033,7 @@ void onDisplay() {
 // Key of ASCII code pressed
 void onKeyboard(unsigned char key, int pX, int pY) {
 	if (key == 'd') glutPostRedisplay();         // if d, invalidate display, i.e. redraw
+	if (key == ' ') spacepressedtime = glutGet(GLUT_ELAPSED_TIME);
 }
 
 // Key of ASCII code released
@@ -1019,7 +1047,7 @@ void onMouse(int button, int state, int pX, int pY) {
 		float cX = 2.0f * pX / windowWidth - 1;	// flip y axis
 		float cY = 1.0f - 2.0f * pY / windowHeight;
 		//lineStrip.AddPoint(cX, cY);
-		lagrange.AddControlPoint(cX, cY, GLUT_ELAPSED_TIME);
+		lagrange.AddControlPoint(cX, cY, glutGet(GLUT_ELAPSED_TIME));
 		lagrange.Recalculate();
 		glutPostRedisplay();     // redraw
 	}
@@ -1035,6 +1063,7 @@ void onIdle() {
 	float sec = time / 1000.0f;				// convert msec to sec
 	camera.Animate(sec);					// animate the camera
 //	triangle.Animate(sec);					// animate the triangle object
+	PepsiBela.Animate(glutGet(GLUT_ELAPSED_TIME) - spacepressedtime);
 	glutPostRedisplay();					// redraw the scene
 }
 
