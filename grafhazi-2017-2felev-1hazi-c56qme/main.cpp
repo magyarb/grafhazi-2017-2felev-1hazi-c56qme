@@ -902,10 +902,16 @@ public:
 					loc = lagrange.r(state);
 				}
 			}
-			float prevHeight = b.getHeight(loc.x, loc.y);
-			float currentHeight = b.getHeight(wTx, wTy);
-			currAngle = (currentHeight / prevHeight);
-			std::cout << currAngle << "\n";
+			float prevHeight = b.getHeight((loc.x+10)/20, (loc.y+10)/20);
+			float currentHeight = b.getHeight((wTx+10)/20, (wTy+10)/20);
+			Vector prevXY(loc.x, loc.y, 0);
+			Vector currXY(wTx, wTy, 0);
+			float distance = getDistance(prevXY, currXY);
+			currAngle = (currentHeight - prevHeight) / distance;
+			if (currentHeight == prevHeight)
+				currAngle = 0;
+			if(currAngle!=1)
+				std::cout << currentHeight << " : " << currAngle << "\n";
 		}
 		else
 		{
