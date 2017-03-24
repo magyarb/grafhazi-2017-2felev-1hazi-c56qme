@@ -347,7 +347,7 @@ public:
 
 									// vertex coordinates: vbo[0] -> Attrib Array 0 -> vertexPosition of the vertex shader
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]); // make it active, it is an array
-		static float vertexCoords[] = { 0, 0, 1, 0, 0, 1 };	// vertex data on the CPU
+		static float vertexCoords[] = { 0, 0, 0, 1, 1, 1 };	// vertex data on the CPU
 		glBufferData(GL_ARRAY_BUFFER,      // copy to the GPU
 			sizeof(vertexCoords), // number of the vbo in bytes
 			vertexCoords,		   // address of the data array on the CPU
@@ -374,11 +374,7 @@ public:
 	void Animate(float angle) {
 		sx = 3; // sinf(t);
 		sy = 0;
-		
-		if (angle != 1)
-		{
-			sy = angle*3; // cosf(t);
-		}
+		sy = angle*3; // cosf(t);
 		if (sy != 0 && sy != 1)
 		{
 			//std::cout << sy << "\n";
@@ -702,7 +698,7 @@ public:
 
 
 		}
-		std::cout << distance * 50 << "\n";
+		printf("%f\n", distance * 50);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, nVertices * 5 * sizeof(float), vertexData, GL_DYNAMIC_DRAW);
 	}
@@ -907,11 +903,17 @@ public:
 			Vector prevXY(loc.x, loc.y, 0);
 			Vector currXY(wTx, wTy, 0);
 			float distance = getDistance(prevXY, currXY);
+
+			/*
+			currentHeight = 2;
+			prevHeight = 1;
+			distance = 1;*/
+
 			currAngle = (currentHeight - prevHeight) / distance;
 			if (currentHeight == prevHeight)
 				currAngle = 0;
-			if(currAngle!=1)
-				std::cout << currentHeight << " : " << currAngle << "\n";
+			//if(currAngle!=1)
+				//std::cout << currentHeight << " : " << currAngle << "\n";
 		}
 		else
 		{
