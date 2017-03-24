@@ -372,19 +372,19 @@ public:
 	}
 
 	void Animate(float angle) {
-		sx = 1; // sinf(t);
+		sx = 3; // sinf(t);
 		sy = 0;
 		
 		if (angle != 1)
 		{
-			sy = tanh(angle - 1); // cosf(t);
+			sy = angle*3; // cosf(t);
 		}
 		if (sy != 0 && sy != 1)
 		{
 			//std::cout << sy << "\n";
 		}
-		wTx = 7; // 4 * cosf(t / 2);
-		wTy = -7; // 4 * sinf(t / 2);
+		wTx = 6; // 4 * cosf(t / 2);
+		wTy = -6; // 4 * sinf(t / 2);
 	}
 
 	void Draw() {
