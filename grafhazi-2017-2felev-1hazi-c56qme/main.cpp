@@ -374,7 +374,7 @@ public:
 	void Animate(float angle) {
 		sx = 3; // sinf(t);
 		sy = 0;
-		sy = angle*3; // cosf(t);
+		sy = angle * 15; // a haromszog 5-szoros torzitassal mutatja a szoget
 		if (sy != 0 && sy != 1)
 		{
 			//std::cout << sy << "\n";
@@ -615,6 +615,18 @@ public:
 		return Li;
 	}
 
+	float Lderiv(int i, float t, float L) {
+		float Ld = 0.0f;
+		for (int k = 0; k < cps.size(); k++)
+		{
+			if (i != k) {
+				Ld = Ld + (L / (t - ts[k]));
+			}
+		}
+		return Ld;
+	}
+
+
 	void AddControlPoint(float cpx, float cpy, float time) {
 		vec4 wVertex = vec4(cpx, cpy, 0, 1) * camera.Pinv() * camera.Vinv();
 		Vector v;
@@ -633,6 +645,13 @@ public:
 		return rr;
 	}
 
+	Vector rderiv(float t) {
+		Vector rr(0, 0, 0);
+		for (int i = 0; i < cps.size(); i++) {
+			rr = rr + cps[i] * Lderiv(i, t, L(i, t));
+		}
+		return rr;
+	}
 
 	void Create() {
 		glGenVertexArrays(1, &vao);
@@ -865,6 +884,7 @@ public:
 		sx = 1;
 		sy = 1;
 		Vector loc;
+		Vector rotationVector;
 		if (spacepressedtime != 0) {
 			//ha vége a pályának, marad ott
 			loc = lagrange.r(lagrange.times.size() - 1);
@@ -875,8 +895,9 @@ public:
 					float elsokatt = lagrange.times[i] - lagrange.times[0];
 					float masodikkatt = lagrange.times[i + 1] - lagrange.times[0];
 					float elteltido = masodikkatt - elsokatt;
-					float state = i + (t-elsokatt) / elteltido;
+					float state = i + (t - elsokatt) / elteltido;
 					loc = lagrange.r(state);
+					rotationVector = lagrange.rderiv(state);
 				}
 			}
 			wTx = loc.x;
@@ -898,8 +919,8 @@ public:
 					loc = lagrange.r(state);
 				}
 			}
-			float prevHeight = b.getHeight((loc.x+10)/20, (loc.y+10)/20);
-			float currentHeight = b.getHeight((wTx+10)/20, (wTy+10)/20);
+			float prevHeight = b.getHeight((loc.x + 10) / 20, (loc.y + 10) / 20);
+			float currentHeight = b.getHeight((wTx + 10) / 20, (wTy + 10) / 20);
 			Vector prevXY(loc.x, loc.y, 0);
 			Vector currXY(wTx, wTy, 0);
 			float distance = getDistance(prevXY, currXY);
@@ -914,6 +935,24 @@ public:
 				currAngle = 0;
 			//if(currAngle!=1)
 				//std::cout << currentHeight << " : " << currAngle << "\n";
+
+
+			float rotation = rotationVector.y / rotationVector.x;
+
+			float angle = (atan(rotation));
+			if (rotationVector.x > 0 && rotationVector.y > 0) //+,+
+				angle = abs(angle - M_PI / 2);
+			else if (rotationVector.x > 0 && rotationVector.y < 0) //+,-
+				angle = abs(angle) + M_PI / 2;
+			else if (rotationVector.x < 0 && rotationVector.y < 0) //-,-
+				angle = abs(angle - M_PI / 2) + M_PI;
+			else if (rotationVector.x < 0 && rotationVector.y > 0) //-,+
+				angle = (abs(angle) + M_PI / 2) + M_PI;
+			else
+				angle = M_PI;
+			std::cout << atan(rotation) << " ::: " << rotationVector.x << " , " << rotationVector.y << " : " << angle << "\n";
+			fir = angle;
+
 		}
 		else
 		{
