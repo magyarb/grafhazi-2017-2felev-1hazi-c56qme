@@ -285,27 +285,48 @@ Camera camera;
 // handle of the shader program
 unsigned int shaderProgram;
 
-class BezierCurve {
-public:
-	float getHeight(float x, float y) { //0 és 1 közt legyen a floatok mérete
+mat4 gbx(
+	0.5, 1, 0.5, 0.5,
+	0, 1, 1, 0,
+	0, 1, 1, 0.5,
+	0.5, 0, 0, 1); // GbX matrix
 
-		mat4 gbx(
-			0.5, 0.5, 0.5, 0.5,
-			0, 1, 1, 0,
-			0, 1, 1, 0.5,
-			0.5, 0, 0, 0); // GbX matrix
+class BezierCurve {
+
+public:
+
+
+	float getHeight(float x, float y) { //0 és 1 közt legyen a floatok mérete
 
 		float ret = 0;
 
-		for (int i = 0; i < 3; i++)
+		for (int i = 0; i < 4; i++)
 		{
-			for (int j = 0; j < 3; j++)
+			for (int j = 0; j < 4; j++)
 			{
 				ret += gbx.m[i][j] * getB(x, i)*getB(y, j);
 			}
 		}
-		return ret*1.8;
+		//ret = ret*1.8; //hogy a szinek jobban latszodjanak
+		return ret;
 	}
+
+	Vector getDeriv(float x, float y)
+	{
+
+		Vector res = { 0,0,0 };
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				res.y += gbx.m[i][j] * getBDeriv(y, i)*getB(x, j);
+				res.x += gbx.m[i][j] * getB(y, i)*getBDeriv(x, j);
+			}
+		}
+		res.y = -res.y;
+		return res;
+	}
+
 	float getB(float u, int no) //u számra a no-adik b-t adja vissza
 	{
 		switch (no)
@@ -321,6 +342,26 @@ public:
 			break;
 		case 3:
 			return pow(u, 3);
+		default:
+			break;
+		}
+	}
+
+	float getBDeriv(float u, int no) //u számra a no-adik b-t adja vissza
+	{
+		switch (no)
+		{
+		case 0:
+			return -3.0f * (pow(1 - u, 2));
+			break;
+		case 1:
+			return 9.0f * pow(u, 2) - 12.0f * u + 3.0f;
+			break;
+		case 2:
+			return 3.0f * (2.0f - 3.0f * u)*u;
+			break;
+		case 3:
+			return 3.0f * pow(u, 2);
 		default:
 			break;
 		}
@@ -374,6 +415,7 @@ public:
 	void Animate(float angle) {
 		sx = 3; // sinf(t);
 		sy = 0;
+
 		sy = angle * 15; // a haromszog 5-szoros torzitassal mutatja a szoget
 		if (sy != 0 && sy != 1)
 		{
@@ -930,9 +972,21 @@ public:
 			prevHeight = 1;
 			distance = 1;*/
 
+			Vector bezierDeriv = b.getDeriv((wTx + 10) / 20, (wTy + 10) / 20);
+
+			//std::cout << bezierDeriv.x << " , " << bezierDeriv.y << "\n";
+
+			float derivTst = bezierDeriv * rotationVector;
+
+			//std::cout << atan(derivTst) << "\n";
+
+
+
 			currAngle = (currentHeight - prevHeight) / distance;
 			if (currentHeight == prevHeight)
 				currAngle = 0;
+			sy = cos(currAngle * 10); //szemlelteti a dolesszoget
+
 			//if(currAngle!=1)
 				//std::cout << currentHeight << " : " << currAngle << "\n";
 
@@ -950,7 +1004,7 @@ public:
 				angle = (abs(angle) + M_PI / 2) + M_PI;
 			else
 				angle = M_PI;
-			std::cout << atan(rotation) << " ::: " << rotationVector.x << " , " << rotationVector.y << " : " << angle << "\n";
+			//std::cout << atan(rotation) << " ::: " << rotationVector.x << " , " << rotationVector.y << " : " << angle << "\n";
 			fir = angle;
 
 		}
@@ -965,12 +1019,16 @@ public:
 		mat4 scale(sx, 0, 0, 0,
 			0, sy, 0, 0,
 			0, 0, 0, 0,
+			0, 0, 0, 1); // scale and position matrix
+		mat4 pos(1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 0, 0,
 			wTx, wTy, 0, 1); // scale and position matrix
 		mat4 rot(cos(fir), -sin(fir), 0, 0,
 			sin(fir), cos(fir), 0, 0,
 			0, 0, 0, 0,
 			0, 0, 0, 1); // rotate matrix
-		mat4 M = rot * scale;
+		mat4 M = scale * rot * pos;
 		mat4 MVPTransform = M * camera.V() * camera.P();
 
 		// set GPU uniform matrix variable MVP with the content of CPU variable MVPTransform
@@ -1037,7 +1095,7 @@ public:
 };
 
 
-
+bool bikerCreated = false;
 
 // The virtual world: collection of two objects
 //Triangle triangle;
@@ -1053,7 +1111,7 @@ void onInitialization() {
 	// Create objects by setting up their vertex data on the GPU
 //	triangle.Create();
 	lagrange.Create();
-	PepsiBela.Create();
+	
 	static float color[3] = { 0.95, 1.0, 1.0 };
 	mapTriangles.Create();
 	angleTriangle.Create();
@@ -1123,7 +1181,15 @@ void onDisplay() {
 // Key of ASCII code pressed
 void onKeyboard(unsigned char key, int pX, int pY) {
 	if (key == 'd') glutPostRedisplay();         // if d, invalidate display, i.e. redraw
-	if (key == ' ') spacepressedtime = glutGet(GLUT_ELAPSED_TIME);
+	if (key == ' ')
+	{
+		spacepressedtime = glutGet(GLUT_ELAPSED_TIME);
+		if (!bikerCreated)
+		{
+			PepsiBela.Create();
+			bikerCreated = true;
+		}
+	}
 }
 
 // Key of ASCII code released
